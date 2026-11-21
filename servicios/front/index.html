@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kipu FraudShield | Detección de fraude</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            color: #172033;
+        }
+
+        header {
+            background: #14213d;
+            color: white;
+            padding: 24px 8%;
+        }
+
+        header h1 {
+            margin: 0 0 6px;
+        }
+
+        header p {
+            margin: 0;
+            color: #cbd5e1;
+        }
+
+        main {
+            max-width: 850px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 4px 18px #0000000d;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 7px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        button {
+            margin-top: 24px;
+            padding: 13px 22px;
+            background: #2563eb;
+            color: white;
+            border: 0;
+            border-radius: 7px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+
+        #resultado {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 8px;
+            background: #eff6ff;
+        }
+
+        #resultado.error {
+            background: #fee2e2;
+        }
+
+        footer {
+            text-align: center;
+            padding: 25px;
+            color: #64748b;
+        }
+
+        @media (max-width: 600px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Kipu FraudShield</h1>
+        <p>Sistema inteligente de detección de fraude en pagos digitales</p>
+    </header>
+
+    <main>
+        <section class="panel">
+            <h2>Evaluación de transacción</h2>
+            <p>Ingrese las características de la transacción para evaluar su riesgo.</p>
+
+            <form id="formulario">
+                <div class="grid">
+                    <div>
+                        <label for="moneda">Moneda</label>
+                        <select id="moneda">
+                            <option value="CLP">CLP</option>
+                            <option value="USD">USD</option>
+                            <option value="OTRA">Otra</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="canal">Canal</label>
+                        <select id="canal">
+                            <option value="web">Web</option>
+                            <option value="app">App</option>
+                            <option value="pos">POS</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="mcc">Código MCC</label>
+                        <input id="mcc" value="5411" required>
+                    </div>
+
+                    <div>
+                        <label for="pais">País de transacción</label>
+                        <input id="pais" value="cl" required>
+                    </div>
+
+                    <div>
+                        <label for="monto_negativo">Monto negativo</label>
+                        <select id="monto_negativo">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="monto_cero">Monto cero</label>
+                        <select id="monto_cero">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="moneda_desconocida">Moneda desconocida</label>
+                        <select id="moneda_desconocida">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="monto_ambiguo">Monto ambiguo</label>
+                        <select id="monto_ambiguo">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="coordenadas_sospechosas">Coordenadas sospechosas</label>
+                        <select id="coordenadas_sospechosas">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="dispositivo_id_faltante">Dispositivo faltante</label>
+                        <select id="dispositivo_id_faltante">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="comercio_id_faltante">Comercio faltante</label>
+                        <select id="comercio_id_faltante">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="ip_faltante">IP faltante</label>
+                        <select id="ip_faltante">
+                            <option value="0">No</option>
+                            <option value="1">Sí</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" id="enviar">Evaluar transacción</button>
+            </form>
+
+            <section id="resultado" aria-live="polite"></section>
+        </section>
+    </main>
+
+    <footer>Kipu FraudShield · Prototipo académico</footer>
+
+    <script>
+        const formulario = document.getElementById("formulario");
+        const resultado = document.getElementById("resultado");
+        const boton = document.getElementById("enviar");
+
+        formulario.addEventListener("submit", async (evento) => {
+            evento.preventDefault();
+
+            const datos = {
+                monto_negativo: Number(document.getElementById("monto_negativo").value),
+                monto_cero: Number(document.getElementById("monto_cero").value),
+                moneda_desconocida: Number(document.getElementById("moneda_desconocida").value),
+                monto_ambiguo: Number(document.getElementById("monto_ambiguo").value),
+                coordenadas_sospechosas: Number(document.getElementById("coordenadas_sospechosas").value),
+                dispositivo_id_faltante: Number(document.getElementById("dispositivo_id_faltante").value),
+                comercio_id_faltante: Number(document.getElementById("comercio_id_faltante").value),
+                ip_faltante: Number(document.getElementById("ip_faltante").value),
+                moneda: document.getElementById("moneda").value,
+                canal: document.getElementById("canal").value,
+                mcc: document.getElementById("mcc").value,
+                pais_transaccion: document.getElementById("pais").value
+            };
+
+            boton.disabled = true;
+            boton.textContent = "Evaluando...";
+            resultado.style.display = "block";
+            resultado.className = "";
+            resultado.textContent = "Procesando solicitud...";
+
+            try {
+                const respuesta = await fetch("/api/predict", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(datos)
+                });
+
+                const respuestaApi = await respuesta.json();
+
+                if (!respuesta.ok) {
+                    throw new Error(respuestaApi.detail || "No fue posible evaluar la transacción.");
+                }
+
+                const porcentaje = (respuestaApi.probabilidad_fraude * 100).toFixed(2);
+                const esFraude = respuestaApi.prediccion === 1;
+
+                resultado.innerHTML = `
+                    <h3>${esFraude ? "Riesgo de fraude detectado" : "Sin fraude detectado por el modelo"}</h3>
+                    <p><strong>Predicción:</strong> ${respuestaApi.prediccion}</p>
+                    <p><strong>Probabilidad estimada de fraude:</strong> ${porcentaje}%</p>
+                    <p><strong>Versión del modelo:</strong> ${respuestaApi.version_modelo}</p>
+                    <p><strong>Estado:</strong> ${respuestaApi.estado_modelo}</p>
+                    <small>Resultado experimental de apoyo; no constituye por sí solo una decisión definitiva.</small>
+                `;
+            } catch (error) {
+                resultado.className = "error";
+                resultado.textContent = "Error: " + error.message;
+            } finally {
+                boton.disabled = false;
+                boton.textContent = "Evaluar transacción";
+            }
+        });
+    </script>
+</body>
+</html>
