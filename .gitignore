@@ -218,3 +218,6 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Kipu FraudShield - Datos originales
+datos/originales/
