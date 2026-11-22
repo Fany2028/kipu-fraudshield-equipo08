@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from modelo.cliente_sagemaker import predecir_sagemaker
 
 RUTA = Path(__file__).resolve().parent
 
@@ -82,3 +83,26 @@ def predict(request: Request, transaccion: Transaccion):
         "probabilidad_fraude": round(float(probabilidad), 4),
         "version": metadata["version"]
     }
+
+# Realizar predicciones mediante AWS SageMaker
+@app.post(
+    "/predict/sagemaker",
+    dependencies=[Depends(verificar_api_key)]
+)
+@limiter.limit("5/minute")
+def predict_sagemaker(
+    request: Request,
+    transaccion: Transaccion
+):
+    try:
+        resultado = predecir_sagemaker(
+            transaccion.model_dump()
+        )
+
+        return resultado
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=502,
+            detail="No fue posible consultar SageMaker"
+        ) from error

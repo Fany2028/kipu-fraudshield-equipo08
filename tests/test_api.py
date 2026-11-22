@@ -94,3 +94,44 @@ def test_predict_rate_limit(monkeypatch):
 
     # Al menos una solicitud debe superar el límite
     assert 429 in codigos_respuesta
+
+# Prueba 6: Rechazar una transacción con un campo obligatorio faltante
+def test_predict_campo_faltante(monkeypatch):
+    clave_prueba = "clave-ficticia-solo-para-tests"
+    monkeypatch.setenv("KIPU_API_KEY", clave_prueba)
+
+    transaccion = TRANSACCION_VALIDA.copy()
+
+    # Eliminar el código de categoría del comercio
+    transaccion.pop("mcc")
+
+    respuesta = cliente.post(
+        "/predict",
+        json=transaccion,
+        headers={"X-API-Key": clave_prueba}
+    )
+
+    assert respuesta.status_code == 422
+
+    errores = respuesta.json()["detail"]
+
+    assert any(
+        error["loc"] == ["body", "mcc"]
+        for error in errores
+    )
+
+# Prueba 7: Rechazar una clave de API incorrecta
+def test_predict_clave_incorrecta(monkeypatch):
+    clave_correcta = "clave-ficticia-solo-para-tests"
+    monkeypatch.setenv("KIPU_API_KEY", clave_correcta)
+
+    respuesta = cliente.post(
+        "/predict",
+        json=TRANSACCION_VALIDA,
+        headers={"X-API-Key": "clave-incorrecta"}
+    )
+
+    assert respuesta.status_code == 401
+    assert respuesta.json()["detail"] == (
+        "Clave de API ausente o invalida"
+    )
