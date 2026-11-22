@@ -17,17 +17,20 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
 
+  
   dominio:
     build:
       context: .
       dockerfile: servicios/dominio/Dockerfile
     restart: unless-stopped
     environment:
-      MODEL_DIR: /app/modelo
       DATABASE_URL: postgresql://kipu_user:${POSTGRES_PASSWORD}@postgres:5432/kipu_fraudshield
+      AWS_DEFAULT_REGION: us-east-1
+      KIPU_SAGEMAKER_ENDPOINT: kipu-fraudshield-ep3-endpoint-v3
     depends_on:
       postgres:
         condition: service_healthy
+
 
   postgres:
     image: postgres:16-alpine

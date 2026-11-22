@@ -1,35 +1,21 @@
-﻿from pathlib import Path
-import json
-import os
+﻿import os
 
-import joblib
-import pandas as pd
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+from botocore.exceptions import BotoCoreError, ClientError
 
 from app.database import obtener_conexion, inicializar_base_datos
+from modelo.cliente_sagemaker import predecir_sagemaker
 
-MODEL_DIR = (
-    Path(os.environ["MODEL_DIR"])
-    if os.getenv("MODEL_DIR")
-    else Path(__file__).resolve().parents[3] / "modelo"
+VERSION_ENDPOINT = os.getenv(
+    "KIPU_SAGEMAKER_ENDPOINT",
+    "kipu-fraudshield-ep3-endpoint-v3"
 )
-
-MODEL_PATH = MODEL_DIR / "kipu_fraudshield_ep3_conservador.joblib"
-METADATA_PATH = MODEL_DIR / "kipu_fraudshield_ep3_metadata.json"
-
-if not MODEL_PATH.exists() or not METADATA_PATH.exists():
-    raise RuntimeError("No se encontraron el modelo y sus metadatos.")
-
-modelo = joblib.load(MODEL_PATH)
-
-with open(METADATA_PATH, encoding="utf-8") as archivo:
-    metadata = json.load(archivo)
 
 app = FastAPI(
     title="Kipu FraudShield - Servicio de Dominio",
     version="1.0.0",
-    description="Servicio local para evaluar transacciones."
+    description="Servicio de evaluación de transacciones mediante SageMaker."
 )
 
 
@@ -58,26 +44,28 @@ def health():
     return {
         "estado": "ok",
         "servicio": "dominio",
-        "modelo": metadata["nombre"],
-        "version_modelo": metadata["version"]
+        "endpoint_sagemaker": VERSION_ENDPOINT
     }
 
 
 @app.post("/api/predict")
 def predict(transaccion: Transaccion):
     try:
-        entrada = pd.DataFrame([transaccion.model_dump()])
-        entrada = entrada[metadata["variables"]]
+        resultado = predecir_sagemaker(transaccion.model_dump())
 
-        probabilidades = modelo.predict_proba(entrada)[0]
-        clases = list(modelo.classes_)
+        predicciones = resultado.get("predicciones", [])
+        if not predicciones:
+            raise ValueError("SageMaker no devolvió predicciones.")
 
-        if 1 not in clases:
-            raise RuntimeError("El modelo no contiene la clase de fraude (1).")
+        prediccion_modelo = predicciones[0]
+        prediccion = int(prediccion_modelo["es_fraude_predicho"])
+        probabilidad = float(prediccion_modelo["probabilidad_fraude"])
+        version_modelo = resultado.get("version_modelo", VERSION_ENDPOINT)
 
-        indice_fraude = clases.index(1)
-        probabilidad = float(probabilidades[indice_fraude])
-        prediccion = int(modelo.predict(entrada)[0])
+        if prediccion not in (0, 1) or not 0 <= probabilidad <= 1:
+            raise ValueError("SageMaker devolvió una predicción inválida.")
+
+        estado_modelo = "sagemaker"
 
         with obtener_conexion() as conexion:
             with conexion.cursor() as cursor:
@@ -94,22 +82,27 @@ def predict(transaccion: Transaccion):
                     (
                         prediccion,
                         probabilidad,
-                        metadata["version"],
-                        metadata["estado"]
+                        version_modelo,
+                        estado_modelo
                     )
                 )
 
         return {
             "prediccion": prediccion,
             "probabilidad_fraude": round(probabilidad, 4),
-            "version_modelo": metadata["version"],
-            "estado_modelo": metadata["estado"]
+            "version_modelo": version_modelo,
+            "estado_modelo": estado_modelo
         }
 
-    except Exception as error:
+    except (BotoCoreError, ClientError):
+        raise HTTPException(
+            status_code=503,
+            detail="El servicio de evaluación de SageMaker no está disponible."
+        )
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=f"Error al evaluar la transaccion: {str(error)}"
+            detail="No fue posible evaluar la transacción."
         )
 
 
@@ -139,10 +132,10 @@ def listar_evaluaciones():
             for fila in filas
         ]
 
-    except Exception as error:
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=f"Error al consultar evaluaciones: {str(error)}"
+            detail="No fue posible consultar las evaluaciones."
         )
 
 
