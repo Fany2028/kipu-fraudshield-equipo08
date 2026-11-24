@@ -7,3 +7,4 @@ joblib==1.6.0
 psycopg[binary]==3.2.9
 slowapi
 boto3==1.44.9
+pika==1.3.2

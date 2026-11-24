@@ -26,6 +26,12 @@ services:
       DATABASE_URL: postgresql://kipu_user:${POSTGRES_PASSWORD}@postgres:5432/kipu_fraudshield
       AWS_DEFAULT_REGION: us-east-1
       KIPU_SAGEMAKER_ENDPOINT: kipu-fraudshield-ep3-endpoint-v3
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      KIPU_API_KEY: ${KIPU_API_KEY:?KIPU_API_KEY_no_configurada}
+    volumes:
+      - "${USERPROFILE}/.aws:/root/.aws:ro"
     depends_on:
       postgres:
         condition: service_healthy
@@ -47,6 +53,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+  
+  worker_llm:
+    build:
+      context: .
+      dockerfile: servicios/worker_llm/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://kipu_user:${POSTGRES_PASSWORD}@postgres:5432/kipu_fraudshield
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY}
+      NVIDIA_MODEL: ${NVIDIA_MODEL}
+    depends_on:
+      rabbitmq:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
 volumes:
   kipu_postgres_data:
