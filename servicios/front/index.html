@@ -3,294 +3,680 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kipu FraudShield | Detección de fraude</title>
+    <meta name="theme-color" content="#101b32">
+    <title>Kipu FraudShield | Plataforma de evaluación</title>
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --navy: #101b32;
+            --navy2: #1c2b49;
+            --blue: #3867e8;
+            --blue-light: #edf2ff;
+            --bg: #f4f6fb;
+            --text: #202b3d;
+            --muted: #718096;
+            --border: #e5eaf2;
+            --green: #16845b;
+            --red: #c53d4d;
+            --orange: #b7791f;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            color: #172033;
+            font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: var(--bg);
+            color: var(--text);
         }
 
         header {
-            background: #14213d;
+            background: linear-gradient(120deg, var(--navy), var(--navy2));
             color: white;
-            padding: 24px 8%;
+            padding: 25px max(22px, calc((100% - 1120px) / 2));
         }
 
-        header h1 {
-            margin: 0 0 6px;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 13px;
         }
 
-        header p {
-            margin: 0;
-            color: #cbd5e1;
+        .brand-mark {
+            width: 43px;
+            height: 43px;
+            border-radius: 13px;
+            background: #3867e8;
+            display: grid;
+            place-items: center;
+            font-size: 23px;
+            font-weight: 800;
         }
+
+        header h1 { margin: 0; font-size: 23px; letter-spacing: -.5px; }
+        header p { margin: 5px 0 0; color: #bdc9df; font-size: 13px; }
 
         main {
-            max-width: 850px;
-            margin: 35px auto;
-            padding: 0 20px;
+            max-width: 1120px;
+            margin: 30px auto;
+            padding: 0 22px;
+        }
+
+        .topline {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 22px;
+        }
+
+        .topline h2 { margin: 0; font-size: 23px; }
+        .topline p { margin: 5px 0 0; color: var(--muted); font-size: 14px; }
+
+        .connection {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 9px 13px;
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #a0aec0;
+        }
+
+        .dot.online { background: #20a56f; }
+        .dot.offline { background: #d34b5b; }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(280px, .75fr);
+            gap: 20px;
+            align-items: start;
         }
 
         .panel {
             background: white;
-            padding: 28px;
-            border-radius: 12px;
-            box-shadow: 0 4px 18px #0000000d;
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            padding: 24px;
+            box-shadow: 0 5px 20px #15213a08;
         }
 
-        h2 {
-            margin-top: 0;
+        .panel h3 { margin: 0; font-size: 17px; }
+        .description { color: var(--muted); font-size: 13px; line-height: 1.5; margin: 7px 0 21px; }
+
+        .section-label {
+            color: #68758a;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 21px 0 13px;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 18px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 15px;
         }
 
         label {
             display: block;
-            font-weight: bold;
+            font-size: 12px;
+            font-weight: 700;
             margin-bottom: 7px;
+            color: #43516a;
         }
 
         input, select {
             width: 100%;
-            padding: 11px;
-            border: 1px solid #cbd5e1;
-            border-radius: 7px;
-            font-size: 15px;
+            min-height: 42px;
+            padding: 10px 12px;
+            border: 1px solid #dce3ee;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--text);
+            font: inherit;
+            font-size: 13px;
+        }
+
+        input:focus, select:focus {
+            outline: 2px solid #3867e833;
+            border-color: var(--blue);
+        }
+
+        .hint { color: var(--muted); font-size: 11px; margin-top: 5px; }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 24px;
         }
 
         button {
-            margin-top: 24px;
-            padding: 13px 22px;
-            background: #2563eb;
-            color: white;
             border: 0;
-            border-radius: 7px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #1d4ed8;
-        }
-
-        button:disabled {
-            opacity: 0.6;
-            cursor: wait;
-        }
-
-        #resultado {
-            display: none;
-            margin-top: 25px;
-            padding: 20px;
             border-radius: 8px;
-            background: #eff6ff;
+            padding: 12px 17px;
+            background: var(--blue);
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background .15s;
         }
 
-        #resultado.error {
-            background: #fee2e2;
+        button:hover { background: #2852c7; }
+        button:disabled { opacity: .6; cursor: wait; }
+
+        button.secondary {
+            background: white;
+            border: 1px solid var(--border);
+            color: #43516a;
         }
 
-        footer {
-            text-align: center;
-            padding: 25px;
-            color: #64748b;
+        button.secondary:hover { background: #f5f7fb; }
+
+        .result {
+            display: none;
+            margin-top: 20px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #f8faff;
         }
 
-        @media (max-width: 600px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
+        .result.show { display: block; }
+        .result.fraud { background: #fff4f4; border-color: #f4cccc; }
+        .result.safe { background: #effaf5; border-color: #c5ead7; }
+        .result.error { background: #fff4f4; border-color: #f4cccc; }
+
+        .result-title { font-size: 16px; font-weight: 800; margin: 0 0 8px; }
+        .result.fraud .result-title { color: var(--red); }
+        .result.safe .result-title { color: var(--green); }
+
+        .probability {
+            font-size: 30px;
+            font-weight: 800;
+            margin: 8px 0;
+            letter-spacing: -1px;
+        }
+
+        .result-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .meta {
+            background: #ffffffb8;
+            border-radius: 8px;
+            padding: 10px;
+            min-width: 0;
+        }
+
+        .meta span { display: block; color: var(--muted); font-size: 10px; margin-bottom: 5px; }
+        .meta strong { font-size: 12px; overflow-wrap: anywhere; }
+
+        .note { font-size: 11px; color: var(--muted); line-height: 1.5; margin: 13px 0 0; }
+
+        .side-panel { display: grid; gap: 20px; }
+
+        .metric {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 13px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric:last-child { border-bottom: 0; }
+        .metric span { color: var(--muted); font-size: 12px; }
+        .metric strong { font-size: 14px; }
+
+        .history { margin-top: 20px; }
+        .history-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .history-head p { color: var(--muted); font-size: 12px; margin: 5px 0 0; }
+
+        .table-wrap { overflow-x: auto; }
+        table { border-collapse: collapse; width: 100%; min-width: 580px; }
+        th, td {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 12px;
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+
+        .pill {
+            display: inline-block;
+            padding: 5px 8px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-weight: 800;
+        }
+
+        .pill.fraud { background: #ffe7e8; color: var(--red); }
+        .pill.safe { background: #e2f6ec; color: var(--green); }
+
+        .empty { text-align: center; color: var(--muted); padding: 25px; font-size: 12px; }
+        .loading { color: var(--muted); font-size: 12px; padding: 12px 0; }
+        footer { text-align: center; padding: 25px; color: #8994a6; font-size: 11px; }
+
+        @media (max-width: 800px) {
+            .layout { grid-template-columns: 1fr; }
+            .side-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 560px) {
+            main { margin: 20px auto; padding: 0 13px; }
+            header { padding: 20px 16px; }
+            .topline { align-items: flex-start; flex-direction: column; }
+            .grid, .side-panel { grid-template-columns: 1fr; }
+            .panel { padding: 18px; }
+            .actions { align-items: stretch; flex-direction: column; }
+            .actions button { width: 100%; }
         }
     </style>
 </head>
 <body>
-    <header>
-        <h1>Kipu FraudShield</h1>
-        <p>Sistema inteligente de detección de fraude en pagos digitales</p>
-    </header>
+<header>
+    <div class="brand">
+        <div class="brand-mark">K</div>
+        <div>
+            <h1>Kipu FraudShield</h1>
+            <p>Plataforma de evaluación de riesgo en transacciones digitales</p>
+        </div>
+    </div>
+</header>
 
-    <main>
+<main>
+    <div class="topline">
+        <div>
+            <h2>Panel de evaluación</h2>
+            <p>Analice características de una transacción y consulte sus evaluaciones.</p>
+        </div>
+        <div class="connection" aria-live="polite">
+            <span id="health-dot" class="dot"></span>
+            <span id="health-text">Comprobando servicio...</span>
+        </div>
+    </div>
+
+    <div class="layout">
         <section class="panel">
-            <h2>Evaluación de transacción</h2>
-            <p>Ingrese las características de la transacción para evaluar su riesgo.</p>
+            <h3>Nueva evaluación</h3>
+            <p class="description">Ingrese las características de la operación. Los campos binarios indican si la condición está presente.</p>
 
             <form id="formulario">
+                <div class="section-label">Datos de la transacción</div>
                 <div class="grid">
                     <div>
                         <label for="moneda">Moneda</label>
-                        <select id="moneda">
+                        <select id="moneda" required>
                             <option value="CLP">CLP</option>
                             <option value="USD">USD</option>
                             <option value="OTRA">Otra</option>
                         </select>
                     </div>
-
                     <div>
                         <label for="canal">Canal</label>
-                        <select id="canal">
+                        <select id="canal" required>
                             <option value="web">Web</option>
                             <option value="app">App</option>
                             <option value="pos">POS</option>
                         </select>
                     </div>
-
                     <div>
                         <label for="mcc">Código MCC</label>
-                        <input id="mcc" value="5411" required>
+                        <input id="mcc" value="5411" maxlength="10" required>
                     </div>
-
                     <div>
                         <label for="pais">País de transacción</label>
-                        <input id="pais" value="cl" required>
-                    </div>
-
-                    <div>
-                        <label for="monto_negativo">Monto negativo</label>
-                        <select id="monto_negativo">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="monto_cero">Monto cero</label>
-                        <select id="monto_cero">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="moneda_desconocida">Moneda desconocida</label>
-                        <select id="moneda_desconocida">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="monto_ambiguo">Monto ambiguo</label>
-                        <select id="monto_ambiguo">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="coordenadas_sospechosas">Coordenadas sospechosas</label>
-                        <select id="coordenadas_sospechosas">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="dispositivo_id_faltante">Dispositivo faltante</label>
-                        <select id="dispositivo_id_faltante">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="comercio_id_faltante">Comercio faltante</label>
-                        <select id="comercio_id_faltante">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="ip_faltante">IP faltante</label>
-                        <select id="ip_faltante">
-                            <option value="0">No</option>
-                            <option value="1">Sí</option>
-                        </select>
+                        <input id="pais" value="CL" maxlength="5" required>
                     </div>
                 </div>
 
-                <button type="submit" id="enviar">Evaluar transacción</button>
+                <div class="section-label">Indicadores de riesgo y calidad de datos</div>
+                <div class="grid">
+                    <div>
+                        <label for="monto_negativo">Monto negativo</label>
+                        <select id="monto_negativo"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="monto_cero">Monto cero</label>
+                        <select id="monto_cero"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="moneda_desconocida">Moneda desconocida</label>
+                        <select id="moneda_desconocida"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="monto_ambiguo">Monto ambiguo</label>
+                        <select id="monto_ambiguo"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="coordenadas_sospechosas">Coordenadas sospechosas</label>
+                        <select id="coordenadas_sospechosas"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="dispositivo_id_faltante">Dispositivo faltante</label>
+                        <select id="dispositivo_id_faltante"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="comercio_id_faltante">Comercio faltante</label>
+                        <select id="comercio_id_faltante"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                    <div>
+                        <label for="ip_faltante">IP faltante</label>
+                        <select id="ip_faltante"><option value="0">No</option><option value="1">Sí</option></select>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button id="enviar" type="submit">Evaluar transacción</button>
+                    <button class="secondary" id="limpiar" type="reset">Limpiar formulario</button>
+                </div>
             </form>
 
-            <section id="resultado" aria-live="polite"></section>
+            <section id="resultado" class="result" aria-live="polite" aria-atomic="true"></section>
         </section>
-    </main>
 
-    <footer>Kipu FraudShield · Prototipo académico</footer>
+        <aside class="side-panel">
+            <section class="panel">
+                <h3>Estado de plataforma</h3>
+                <p class="description">Conectividad del servicio de dominio.</p>
+                <div class="metric"><span>Servicio API</span><strong id="api-status">Verificando</strong></div>
+                <div class="metric"><span>Endpoint configurado</span><strong id="endpoint-status">—</strong></div>
+                <div class="metric"><span>Última comprobación</span><strong id="last-check">—</strong></div>
+            </section>
 
-    <script>
-        const formulario = document.getElementById("formulario");
-        const resultado = document.getElementById("resultado");
-        const boton = document.getElementById("enviar");
+            <section class="panel">
+                <h3>Sobre la evaluación</h3>
+                <p class="description">El sistema utiliza un modelo de clasificación para estimar la probabilidad de fraude a partir de las características ingresadas.</p>
+                <div class="metric"><span>Motor de inferencia</span><strong>SageMaker</strong></div>
+                <div class="metric"><span>Persistencia</span><strong>PostgreSQL</strong></div>
+                <div class="metric"><span>Resultados históricos</span><strong>Hasta 100</strong></div>
+                <p class="note">Las predicciones son estimaciones experimentales de apoyo. Deben interpretarse junto con los controles y procesos de revisión correspondientes.</p>
+            </section>
+        </aside>
+    </div>
 
-        formulario.addEventListener("submit", async (evento) => {
-            evento.preventDefault();
+    <section class="panel history">
+        <div class="history-head">
+            <div>
+                <h3>Historial de evaluaciones</h3>
+                <p>Registros consultados desde el servicio de dominio.</p>
+            </div>
+            <button class="secondary" id="actualizar" type="button">Actualizar historial</button>
+        </div>
+        <div id="history-message" class="loading">Cargando evaluaciones...</div>
+        <div class="table-wrap">
+            <table id="history-table" hidden>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Resultado</th>
+                        <th>Probabilidad</th>
+                        <th>Modelo</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body"></tbody>
+            </table>
+        </div>
+    </section>
+</main>
 
-            const datos = {
-                monto_negativo: Number(document.getElementById("monto_negativo").value),
-                monto_cero: Number(document.getElementById("monto_cero").value),
-                moneda_desconocida: Number(document.getElementById("moneda_desconocida").value),
-                monto_ambiguo: Number(document.getElementById("monto_ambiguo").value),
-                coordenadas_sospechosas: Number(document.getElementById("coordenadas_sospechosas").value),
-                dispositivo_id_faltante: Number(document.getElementById("dispositivo_id_faltante").value),
-                comercio_id_faltante: Number(document.getElementById("comercio_id_faltante").value),
-                ip_faltante: Number(document.getElementById("ip_faltante").value),
-                moneda: document.getElementById("moneda").value,
-                canal: document.getElementById("canal").value,
-                mcc: document.getElementById("mcc").value,
-                pais_transaccion: document.getElementById("pais").value
-            };
+<footer>Kipu FraudShield · Proyecto académico · Sistema de apoyo a la detección de fraude</footer>
 
-            boton.disabled = true;
-            boton.textContent = "Evaluando...";
-            resultado.style.display = "block";
-            resultado.className = "";
-            resultado.textContent = "Procesando solicitud...";
+<script>
+    const formulario = document.getElementById("formulario");
+    const boton = document.getElementById("enviar");
+    const resultado = document.getElementById("resultado");
 
-            try {
-                const respuesta = await fetch("/api/predict", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify(datos)
-                });
+    const camposBinarios = [
+        "monto_negativo",
+        "monto_cero",
+        "moneda_desconocida",
+        "monto_ambiguo",
+        "coordenadas_sospechosas",
+        "dispositivo_id_faltante",
+        "comercio_id_faltante",
+        "ip_faltante"
+    ];
 
-                const respuestaApi = await respuesta.json();
+    function mostrarResultado(tipo, titulo, contenido) {
+        resultado.className = "result show " + tipo;
+        resultado.replaceChildren();
 
-                if (!respuesta.ok) {
-                    throw new Error(respuestaApi.detail || "No fue posible evaluar la transacción.");
-                }
+        const encabezado = document.createElement("h4");
+        encabezado.className = "result-title";
+        encabezado.textContent = titulo;
+        resultado.appendChild(encabezado);
 
-                const porcentaje = (respuestaApi.probabilidad_fraude * 100).toFixed(2);
-                const esFraude = respuestaApi.prediccion === 1;
+        const texto = document.createElement("p");
+        texto.textContent = contenido;
+        resultado.appendChild(texto);
+    }
 
-                resultado.innerHTML = `
-                    <h3>${esFraude ? "Riesgo de fraude detectado" : "Sin fraude detectado por el modelo"}</h3>
-                    <p><strong>Predicción:</strong> ${respuestaApi.prediccion}</p>
-                    <p><strong>Probabilidad estimada de fraude:</strong> ${porcentaje}%</p>
-                    <p><strong>Versión del modelo:</strong> ${respuestaApi.version_modelo}</p>
-                    <p><strong>Estado:</strong> ${respuestaApi.estado_modelo}</p>
-                    <small>Resultado experimental de apoyo; no constituye por sí solo una decisión definitiva.</small>
-                `;
-            } catch (error) {
-                resultado.className = "error";
-                resultado.textContent = "Error: " + error.message;
-            } finally {
-                boton.disabled = false;
-                boton.textContent = "Evaluar transacción";
-            }
+    function agregarDato(contenedor, etiqueta, valor) {
+        const caja = document.createElement("div");
+        caja.className = "meta";
+
+        const nombre = document.createElement("span");
+        nombre.textContent = etiqueta;
+
+        const dato = document.createElement("strong");
+        dato.textContent = valor;
+
+        caja.append(nombre, dato);
+        contenedor.appendChild(caja);
+    }
+
+    function mostrarPrediccion(data) {
+        const esFraude = Number(data.prediccion) === 1;
+        const probabilidad = Number(data.probabilidad_fraude);
+
+        if (!Number.isFinite(probabilidad) || probabilidad < 0 || probabilidad > 1) {
+            mostrarResultado("error", "Respuesta inválida", "El servicio devolvió una probabilidad fuera del rango esperado.");
+            return;
+        }
+
+        resultado.className = "result show " + (esFraude ? "fraud" : "safe");
+        resultado.replaceChildren();
+
+        const titulo = document.createElement("h4");
+        titulo.className = "result-title";
+        titulo.textContent = esFraude ? "Riesgo de fraude detectado" : "Sin fraude detectado por el modelo";
+
+        const porcentaje = document.createElement("div");
+        porcentaje.className = "probability";
+        porcentaje.textContent = (probabilidad * 100).toFixed(2) + "%";
+
+        const descripcion = document.createElement("p");
+        descripcion.textContent = "Probabilidad estimada de fraude";
+
+        const metadatos = document.createElement("div");
+        metadatos.className = "result-meta";
+
+        agregarDato(metadatos, "Predicción", esFraude ? "Fraude (1)" : "No fraude (0)");
+        agregarDato(metadatos, "Versión del modelo", String(data.version_modelo ?? "No informada"));
+        agregarDato(metadatos, "Motor utilizado", String(data.estado_modelo ?? "No informado"));
+
+        resultado.append(titulo, porcentaje, descripcion, metadatos);
+
+        const nota = document.createElement("p");
+        nota.className = "note";
+        nota.textContent = "Resultado experimental de apoyo. No constituye por sí solo una decisión definitiva sobre la transacción.";
+        resultado.appendChild(nota);
+    }
+
+    formulario.addEventListener("submit", async (evento) => {
+        evento.preventDefault();
+
+        if (!formulario.reportValidity()) return;
+
+        const datos = {};
+        camposBinarios.forEach(campo => {
+            datos[campo] = Number(document.getElementById(campo).value);
         });
-    </script>
+
+        datos.moneda = document.getElementById("moneda").value;
+        datos.canal = document.getElementById("canal").value;
+        datos.mcc = document.getElementById("mcc").value.trim();
+        datos.pais_transaccion = document.getElementById("pais").value.trim();
+
+        boton.disabled = true;
+        boton.textContent = "Evaluando...";
+        mostrarResultado("", "Procesando evaluación", "Enviando la transacción al servicio de evaluación.");
+
+        try {
+            const respuesta = await fetch("/api/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            const data = await respuesta.json().catch(() => ({}));
+
+            if (!respuesta.ok) {
+                throw new Error(data.detail || `Error del servicio (${respuesta.status}).`);
+            }
+
+            mostrarPrediccion(data);
+            cargarHistorial();
+        } catch (error) {
+            mostrarResultado("error", "No fue posible completar la evaluación", error.message || "Error de conexión con el servicio.");
+        } finally {
+            boton.disabled = false;
+            boton.textContent = "Evaluar transacción";
+        }
+    });
+
+    async function comprobarServicio() {
+        const punto = document.getElementById("health-dot");
+        const texto = document.getElementById("health-text");
+        const estado = document.getElementById("api-status");
+        const endpoint = document.getElementById("endpoint-status");
+        const ultima = document.getElementById("last-check");
+
+        try {
+            const respuesta = await fetch("/health", { cache: "no-store" });
+            if (!respuesta.ok) throw new Error("Servicio no disponible");
+
+            const data = await respuesta.json();
+            punto.className = "dot online";
+            texto.textContent = "Servicio disponible";
+            estado.textContent = "Conectado";
+            endpoint.textContent = data.endpoint_sagemaker || "Configurado";
+        } catch (_) {
+            punto.className = "dot offline";
+            texto.textContent = "Servicio no disponible";
+            estado.textContent = "Sin conexión";
+            endpoint.textContent = "No verificado";
+        }
+
+        ultima.textContent = new Date().toLocaleTimeString("es-CL");
+    }
+
+    function crearCelda(fila, valor) {
+        const celda = document.createElement("td");
+        celda.textContent = valor;
+        fila.appendChild(celda);
+        return celda;
+    }
+
+    async function cargarHistorial() {
+        const mensaje = document.getElementById("history-message");
+        const tabla = document.getElementById("history-table");
+        const cuerpo = document.getElementById("history-body");
+        const actualizar = document.getElementById("actualizar");
+
+        mensaje.textContent = "Consultando historial...";
+        tabla.hidden = true;
+        actualizar.disabled = true;
+
+        try {
+            const respuesta = await fetch("/api/evaluaciones", { cache: "no-store" });
+            const datos = await respuesta.json().catch(() => []);
+
+            if (!respuesta.ok) {
+                throw new Error(datos.detail || "No fue posible consultar el historial.");
+            }
+
+            cuerpo.replaceChildren();
+
+            if (!Array.isArray(datos) || datos.length === 0) {
+                mensaje.textContent = "Todavía no existen evaluaciones registradas.";
+                return;
+            }
+
+            datos.forEach(item => {
+                const fila = document.createElement("tr");
+                crearCelda(fila, String(item.id));
+
+                const resultadoCelda = crearCelda(fila, "");
+                const etiqueta = document.createElement("span");
+                const esFraude = Number(item.prediccion) === 1;
+                etiqueta.className = "pill " + (esFraude ? "fraud" : "safe");
+                etiqueta.textContent = esFraude ? "Fraude" : "No fraude";
+                resultadoCelda.appendChild(etiqueta);
+
+                const probabilidad = Number(item.probabilidad_fraude);
+                crearCelda(fila, Number.isFinite(probabilidad) ? (probabilidad * 100).toFixed(2) + "%" : "—");
+                crearCelda(fila, String(item.version_modelo ?? "—"));
+
+                let fecha = "—";
+                if (item.fecha_evaluacion) {
+                    const fechaObj = new Date(item.fecha_evaluacion);
+                    if (!Number.isNaN(fechaObj.getTime())) {
+                        fecha = fechaObj.toLocaleString("es-CL");
+                    }
+                }
+                crearCelda(fila, fecha);
+                cuerpo.appendChild(fila);
+            });
+
+            mensaje.textContent = `${datos.length} evaluación(es) recuperada(s).`;
+            tabla.hidden = false;
+        } catch (error) {
+            mensaje.textContent = "No se pudo cargar el historial: " + error.message;
+        } finally {
+            actualizar.disabled = false;
+        }
+    }
+
+    document.getElementById("actualizar").addEventListener("click", cargarHistorial);
+    document.getElementById("limpiar").addEventListener("click", () => {
+        resultado.className = "result";
+        resultado.replaceChildren();
+    });
+
+    comprobarServicio();
+    cargarHistorial();
+    setInterval(comprobarServicio, 30000);
+</script>
 </body>
 </html>
