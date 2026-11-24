@@ -218,3 +218,34 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Kipu FraudShield - Datos originales
+datos/originales/
+
+# Kipu FraudShield - Datos procesados para SageMaker
+datos/procesados/
+
+# Kipu FraudShield - Modelos entrenados
+*.joblib
+*.tar.gz
+
+# Artefactos locales de SageMaker
+modelo/artefactos_inferencia/
+modelo/artefactos_sagemaker/
+
+# Copias de seguridad
+modelo/api_backup.py
+
+# Credenciales y archivos sensibles
+.aws/
+.env.*
+!.env.example
+
+# Kipu FraudShield - Datos y artefactos locales
+.env
+datos/originales/
+datos/procesados/
+*.joblib
+*.tar.gz
+modelo/artefactos_inferencia/
+modelo/artefactos_sagemaker/

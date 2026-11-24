@@ -1,0 +1,33 @@
+# Git y entornos locales
+.git/
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Credenciales y configuraciones privadas
+.env
+.env.*
+.aws/
+**/.aws/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Modelos y artefactos de entrenamiento
+*.joblib
+*.tar.gz
+modelo/artefactos_inferencia/
+modelo/artefactos_sagemaker/
+
+# Datos y notebooks
+datos/originales/
+datos/procesados/
+notebooks/
+
+# Respaldos y archivos temporales
+modelo/api_backup.py
+*_backup.*
+*.log
