@@ -1,0 +1,37 @@
+{
+    "nombre": "Kipu FraudShield",
+    "version": "ep3_prototipo",
+    "algoritmo": "RandomForestClassifier",
+    "variables": [
+        "monto_negativo",
+        "monto_cero",
+        "moneda_desconocida",
+        "monto_ambiguo",
+        "coordenadas_sospechosas",
+        "dispositivo_id_faltante",
+        "comercio_id_faltante",
+        "ip_faltante",
+        "moneda",
+        "canal",
+        "mcc",
+        "pais_transaccion"
+    ],
+    "numericas": [
+        "monto_negativo",
+        "monto_cero",
+        "moneda_desconocida",
+        "monto_ambiguo",
+        "coordenadas_sospechosas",
+        "dispositivo_id_faltante",
+        "comercio_id_faltante",
+        "ip_faltante"
+    ],
+    "categoricas": [
+        "moneda",
+        "canal",
+        "mcc",
+        "pais_transaccion"
+    ],
+    "estado": "experimental",
+    "limitaciones": "Modelo entrenado con una muestra etiquetada reducida. Pendiente validacion temporal completa e independiente."
+}
