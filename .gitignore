@@ -240,3 +240,12 @@ modelo/api_backup.py
 .aws/
 .env.*
 !.env.example
+
+# Kipu FraudShield - Datos y artefactos locales
+.env
+datos/originales/
+datos/procesados/
+*.joblib
+*.tar.gz
+modelo/artefactos_inferencia/
+modelo/artefactos_sagemaker/
