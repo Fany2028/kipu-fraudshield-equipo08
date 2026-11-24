@@ -249,3 +249,6 @@ datos/procesados/
 *.tar.gz
 modelo/artefactos_inferencia/
 modelo/artefactos_sagemaker/
+
+# Modelo EP3: artefacto necesario para la inferencia local
+!modelo/kipu_fraudshield_ep3_conservador.joblib

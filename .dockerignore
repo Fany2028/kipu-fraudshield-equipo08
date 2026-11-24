@@ -31,3 +31,6 @@ notebooks/
 modelo/api_backup.py
 *_backup.*
 *.log
+
+# Incluir el modelo EP3 para la inferencia local
+!modelo/kipu_fraudshield_ep3_conservador.joblib

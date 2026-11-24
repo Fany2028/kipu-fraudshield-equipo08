@@ -1,4 +1,4 @@
-﻿import os
+import os
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
@@ -6,16 +6,18 @@ from botocore.exceptions import BotoCoreError, ClientError
 
 from app.database import obtener_conexion, inicializar_base_datos
 from modelo.cliente_sagemaker import predecir_sagemaker
+from modelo.predecir import predecir_transaccion
 
 VERSION_ENDPOINT = os.getenv(
     "KIPU_SAGEMAKER_ENDPOINT",
     "kipu-fraudshield-ep3-endpoint-v3"
 )
+MODO_PREDICCION = os.getenv("KIPU_MODELO_PREDICCION", "local").lower()
 
 app = FastAPI(
     title="Kipu FraudShield - Servicio de Dominio",
     version="1.0.0",
-    description="Servicio de evaluación de transacciones mediante SageMaker."
+    description="Servicio de evaluación de transacciones mediante modelo local o SageMaker."
 )
 
 
@@ -44,28 +46,45 @@ def health():
     return {
         "estado": "ok",
         "servicio": "dominio",
-        "endpoint_sagemaker": VERSION_ENDPOINT
+        "endpoint_sagemaker": VERSION_ENDPOINT,
+        "modo_prediccion": MODO_PREDICCION
     }
 
 
 @app.post("/api/predict")
 def predict(transaccion: Transaccion):
     try:
-        resultado = predecir_sagemaker(transaccion.model_dump())
+        datos = transaccion.model_dump()
 
-        predicciones = resultado.get("predicciones", [])
-        if not predicciones:
-            raise ValueError("SageMaker no devolvió predicciones.")
+        if MODO_PREDICCION == "local":
+            resultado = predecir_transaccion(datos)
+            prediccion = int(resultado["es_fraude_predicho"])
+            probabilidad = float(resultado["probabilidad_fraude"])
+            version_modelo = resultado["version_modelo"]
+            estado_modelo = "local"
 
-        prediccion_modelo = predicciones[0]
-        prediccion = int(prediccion_modelo["es_fraude_predicho"])
-        probabilidad = float(prediccion_modelo["probabilidad_fraude"])
-        version_modelo = resultado.get("version_modelo", VERSION_ENDPOINT)
+        elif MODO_PREDICCION == "sagemaker":
+            resultado = predecir_sagemaker(datos)
+            predicciones = resultado.get("predicciones", [])
+
+            if not predicciones:
+                raise ValueError("SageMaker no devolvió predicciones.")
+
+            prediccion_modelo = predicciones[0]
+            prediccion = int(prediccion_modelo["es_fraude_predicho"])
+            probabilidad = float(
+                prediccion_modelo["probabilidad_fraude"]
+            )
+            version_modelo = resultado.get(
+                "version_modelo", VERSION_ENDPOINT
+            )
+            estado_modelo = "sagemaker"
+
+        else:
+            raise ValueError("Modo de predicción no válido.")
 
         if prediccion not in (0, 1) or not 0 <= probabilidad <= 1:
-            raise ValueError("SageMaker devolvió una predicción inválida.")
-
-        estado_modelo = "sagemaker"
+            raise ValueError("El modelo devolvió una predicción inválida.")
 
         with obtener_conexion() as conexion:
             with conexion.cursor() as cursor:
@@ -94,6 +113,8 @@ def predict(transaccion: Transaccion):
             "estado_modelo": estado_modelo
         }
 
+    except HTTPException:
+        raise
     except (BotoCoreError, ClientError):
         raise HTTPException(
             status_code=503,
