@@ -18,9 +18,12 @@ def generar_resumen(decision: str, razones: list[str]) -> str:
                 "role": "system",
                 "content": (
                     "Eres un asistente para analistas de fraude. "
-                    "Explica brevemente la decisión utilizando "
-                    "solo las razones proporcionadas. "
-                    "No inventes información."
+                    "Explica en una o dos frases por qué se tomó la decisión. "
+                    "Relaciona la decisión con las señales proporcionadas. "
+                    "No te limites a repetir o enumerar las razones. "
+                    "No inventes información ni afirmes que un fraude "
+                    "está confirmado si no existe evidencia suficiente. "
+                    "Responde siempre en español."
                 )
             },
             {
