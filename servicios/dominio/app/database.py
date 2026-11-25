@@ -1,4 +1,4 @@
-﻿import os
+import os
 import psycopg
 
 DATABASE_URL = os.environ["DATABASE_URL"]
@@ -60,4 +60,8 @@ def inicializar_base_datos():
             cursor.execute("""
                 ALTER TABLE evaluaciones
                 ADD COLUMN IF NOT EXISTS razones JSONB
+            """)
+            cursor.execute("""
+                ALTER TABLE evaluaciones
+                ADD COLUMN IF NOT EXISTS monto NUMERIC(18,2)
             """)

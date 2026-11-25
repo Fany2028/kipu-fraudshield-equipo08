@@ -285,6 +285,83 @@
         .loading { color: var(--muted); font-size: 12px; padding: 12px 0; }
         footer { text-align: center; padding: 25px; color: #8994a6; font-size: 11px; }
 
+
+        .dash-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 12px;
+            margin: 14px 0 22px;
+        }
+        .dash-card {
+            background: #f4f6fb;
+            border: 1px solid #e5eaf2;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .dash-card span {
+            color: #718096;
+            font-size: 12px;
+        }
+        .dash-card strong {
+            display: block;
+            color: #101b32;
+            font-size: 26px;
+            margin-top: 7px;
+        }
+        .dash-columns {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 20px;
+        }
+
+        #dash-dias {
+            width: 100%;
+            min-width: 0;
+            max-width: 650px;
+        }
+
+        #dash-cola {
+            width: 100%;
+            min-width: 700px;
+            table-layout: fixed;
+        }
+
+        #dash-cola th:nth-child(1) { width: 7%; }
+        #dash-cola th:nth-child(2) { width: 13%; }
+        #dash-cola th:nth-child(3) { width: 12%; }
+        #dash-cola th:nth-child(4) { width: 14%; }
+        #dash-cola th:nth-child(5) { width: 54%; }
+
+        #dash-cola td {
+            vertical-align: top;
+            overflow-wrap: break-word;
+        }
+
+        #dash-cola td:nth-child(-n+4) {
+            overflow-wrap: normal;
+            word-break: normal;
+            white-space: nowrap;
+        }
+
+        .dash-detalle summary {
+            color: #3867e8;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .dash-detalle p {
+            margin: 10px 0 0;
+            line-height: 1.6;
+            white-space: normal;
+        }
+
+        .dash-columns h4 { margin: 0 0 12px; }
+        .dash-table { min-width: 420px; }
+        .dash-table td { overflow-wrap: anywhere; }
+        @media (max-width: 800px) {
+            .dash-columns { grid-template-columns: 1fr; }
+        }
+
         @media (max-width: 800px) {
             .layout { grid-template-columns: 1fr; }
             .side-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -299,7 +376,34 @@
             .actions { align-items: stretch; flex-direction: column; }
             .actions button { width: 100%; }
         }
-    </style>
+
+        /* KIPU_DASH_RESPONSIVE_V2 */
+        .dash-columns > div {
+            min-width: 0;
+        }
+
+        #dash-cola td {
+            overflow-wrap: anywhere;
+        }
+
+        .dash-detalle summary {
+            cursor: pointer;
+            color: #3867e8;
+            font-weight: 600;
+        }
+
+        .dash-detalle p {
+            line-height: 1.6;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 1200px) {
+            .dash-columns {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        </style>
 </head>
 <body>
 <header>
@@ -342,6 +446,11 @@
                 </div>
                 <div class="section-label">Datos de la transacción</div>
                 <div class="grid">
+                    <div>
+                        <label for="monto">Monto de la transacci&oacute;n (opcional)</label>
+                        <input id="monto" type="number" min="0" step="0.01"
+                               placeholder="Ej. 50000" inputmode="decimal">
+                    </div>
                     <div>
                         <label for="moneda">Moneda</label>
                         <select id="moneda" required>
@@ -432,6 +541,85 @@
             </section>
         </aside>
     </div>
+
+
+    <section class="panel history" id="dashboard">
+        <div class="history-head">
+            <div>
+                <h3>Dashboard de fraude</h3>
+                <p>Indicadores obtenidos desde PostgreSQL.</p>
+            </div>
+            <button class="secondary" id="dash-actualizar"
+                    type="button">Actualizar dashboard</button>
+        </div>
+
+        <div id="dash-message" class="loading">
+            Ingresa tu clave de API para ver las estad&iacute;sticas.
+        </div>
+
+        <div class="dash-stats">
+            <div class="dash-card">
+                <span>Total evaluaciones</span>
+                <strong id="dash-total">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Aprobadas</span>
+                <strong id="dash-aprobar">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>En revisi&oacute;n</span>
+                <strong id="dash-revisar">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Bloqueadas</span>
+                <strong id="dash-bloquear">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Sin decisi&oacute;n registrada</span>
+                <strong id="dash-sin-decision">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Tasa de bloqueo global</span>
+                <strong id="dash-tasa">--</strong>
+            </div>
+        </div>
+
+        <div class="dash-columns">
+            <div>
+                <h4>Bloqueos por d&iacute;a</h4>
+                <div class="table-wrap">
+                    <table class="dash-table" id="dash-dias" hidden>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Bloqueadas</th>
+                                <th>Tasa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-dias-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <h4>Cola de revisi&oacute;n priorizada</h4>
+                <div class="table-wrap">
+                    <table class="dash-table" id="dash-cola" hidden>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Decisi&oacute;n</th>
+                                <th>Riesgo</th>
+                                <th>Monto</th>
+                                <th>Resumen NVIDIA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-cola-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <section class="panel history">
         <div class="history-head">
@@ -624,6 +812,11 @@
             datos[campo] = Number(document.getElementById(campo).value);
         });
 
+        const montoTexto = document.getElementById("monto").value.trim();
+        if (montoTexto !== "") {
+            datos.monto = Number(montoTexto);
+        }
+
         datos.moneda = document.getElementById("moneda").value;
         datos.canal = document.getElementById("canal").value;
         datos.mcc = document.getElementById("mcc").value.trim();
@@ -652,6 +845,7 @@
             mostrarPrediccion(data);
             void mostrarExplicacionNvidia(data.evaluacion_id);
             cargarHistorial();
+            cargarDashboard();
         } catch (error) {
             mostrarResultado("error", "No fue posible completar la evaluación", error.message || "Error de conexión con el servicio.");
         } finally {
@@ -785,6 +979,144 @@ crearCelda(fila, String(item.version_modelo ?? "—"));
         }
     }
 
+
+    async function cargarDashboard() {
+        const mensaje = document.getElementById("dash-message");
+        const tablaDias = document.getElementById("dash-dias");
+        const tablaCola = document.getElementById("dash-cola");
+        const botonDash = document.getElementById("dash-actualizar");
+        const clave = document.getElementById("api-key").value.trim();
+
+        if (!clave) {
+            mensaje.textContent = "Ingresa tu clave de API para ver el dashboard.";
+            return;
+        }
+
+        botonDash.disabled = true;
+        mensaje.textContent = "Consultando estadisticas y cola de revision...";
+
+        try {
+            const opciones = {
+                headers: { "X-API-Key": clave },
+                cache: "no-store"
+            };
+
+            const [respuestaStats, respuestaCola] = await Promise.all([
+                fetch("/api/dashboard", opciones),
+                fetch("/api/revision", opciones)
+            ]);
+
+            if (!respuestaStats.ok || !respuestaCola.ok) {
+                throw new Error("No fue posible consultar el dashboard.");
+            }
+
+            const stats = await respuestaStats.json();
+            const cola = await respuestaCola.json();
+            const decisiones = stats.decisiones || {};
+            const total = Number(stats.total_evaluaciones || 0);
+            const aprobar = Number(decisiones.aprobar || 0);
+            const revisar = Number(decisiones.revisar || 0);
+            const bloquear = Number(decisiones.bloquear || 0);
+
+            const valores = {
+                "dash-total": total,
+                "dash-aprobar": aprobar,
+                "dash-revisar": revisar,
+                "dash-bloquear": bloquear,
+                "dash-sin-decision": Math.max(
+                    0, total - aprobar - revisar - bloquear
+                ),
+                "dash-tasa": Number(
+                    stats.tasa_bloqueo_global || 0
+                ).toFixed(2) + "%"
+            };
+
+            Object.entries(valores).forEach(([id, valor]) => {
+                document.getElementById(id).textContent = String(valor);
+            });
+
+            const cuerpoDias = document.getElementById("dash-dias-body");
+            cuerpoDias.replaceChildren();
+
+            const dias = stats.bloqueos_por_dia || [];
+            dias.forEach(dia => {
+                const fila = document.createElement("tr");
+                crearCelda(fila, dia.fecha);
+                crearCelda(fila, String(dia.total));
+                crearCelda(fila, String(dia.bloqueadas));
+                crearCelda(fila, Number(dia.tasa_bloqueo).toFixed(2) + "%");
+                cuerpoDias.appendChild(fila);
+            });
+            tablaDias.hidden = dias.length === 0;
+
+            const cuerpoCola = document.getElementById("dash-cola-body");
+            cuerpoCola.replaceChildren();
+
+            cola.forEach(item => {
+                const fila = document.createElement("tr");
+                crearCelda(fila, String(item.evaluacion_id));
+                crearCelda(fila, item.decision || "Sin decision");
+
+                const riesgo = item.probabilidad_fraude;
+                crearCelda(
+                    fila,
+                    typeof riesgo === "number"
+                        ? (riesgo * 100).toFixed(2) + "%"
+                        : "Regla directa"
+                );
+
+                crearCelda(
+                    fila,
+                    item.monto == null
+                        ? "No registrado"
+                        : Number(item.monto).toLocaleString("es-CL", {
+                            maximumFractionDigits: 2
+                        })
+                );
+
+                const celdaResumen = crearCelda(fila, "");
+
+                if (item.resumen_llm) {
+                    const detalle = document.createElement("details");
+                    detalle.className = "dash-detalle";
+
+                    const titulo = document.createElement("summary");
+                    titulo.textContent = "Ver explicaci\\u00f3n NVIDIA";
+
+                    const contenido = document.createElement("p");
+                    contenido.textContent = item.resumen_llm;
+
+                    detalle.append(titulo, contenido);
+                    celdaResumen.appendChild(detalle);
+                } else {
+                    celdaResumen.textContent =
+                        "Sin resumen: " + (item.estado_llm || "pendiente");
+                }
+
+                cuerpoCola.appendChild(fila);
+            });
+            tablaCola.hidden = cola.length === 0;
+
+            mensaje.textContent =
+                "Dashboard actualizado. " +
+                cola.length + " evaluaciones en la cola de revision.";
+
+        } catch (error) {
+            mensaje.textContent = error.message;
+        } finally {
+            botonDash.disabled = false;
+        }
+    }
+
+    document.getElementById("dash-actualizar")
+        .addEventListener("click", cargarDashboard);
+
+    document.getElementById("api-key")
+        .addEventListener("change", cargarDashboard);
+
+    document.getElementById("actualizar")
+        .addEventListener("click", cargarDashboard);
+
     document.getElementById("actualizar").addEventListener("click", cargarHistorial);
     document.getElementById("api-key").addEventListener("change", cargarHistorial);
     document.getElementById("limpiar").addEventListener("click", () => {
@@ -794,6 +1126,7 @@ crearCelda(fila, String(item.version_modelo ?? "—"));
 
     comprobarServicio();
     cargarHistorial();
+    cargarDashboard();
     setInterval(comprobarServicio, 30000);
 </script>
 </body>

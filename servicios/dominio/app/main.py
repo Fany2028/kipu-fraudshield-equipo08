@@ -43,6 +43,7 @@ def validar_api_key(
         )
     
 class Transaccion(BaseModel):
+    monto: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     monto_negativo: int = Field(ge=0, le=1)
     monto_cero: int = Field(ge=0, le=1)
     moneda_desconocida: int = Field(ge=0, le=1)
@@ -116,9 +117,10 @@ def predict(transaccion: Transaccion):
                             estado_llm,
                             decision,
                             origen_decision,
-                            razones
+                            razones,
+                            monto
                         )
-                        VALUES (NULL, NULL, %s, %s, %s, %s, %s, %s::jsonb)
+                        VALUES (NULL, NULL, %s, %s, %s, %s, %s, %s::jsonb, %s)
                         RETURNING id
                         """,
                         (
@@ -127,7 +129,8 @@ def predict(transaccion: Transaccion):
                             "pendiente",
                             "bloquear",
                             "lista_negra",
-                            json.dumps(razones_regla, ensure_ascii=False)
+                            json.dumps(razones_regla, ensure_ascii=False),
+                            transaccion.monto
                         )
                     )
 
@@ -242,9 +245,10 @@ def predict(transaccion: Transaccion):
                         version_modelo,
                         estado_modelo,
                         estado_llm,
-                        razones
+                        razones,
+                        monto
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s::jsonb)
+                    VALUES (%s, %s, %s, %s, %s, %s::jsonb, %s)
                     RETURNING id
                     """,
                     (
@@ -253,7 +257,8 @@ def predict(transaccion: Transaccion):
                         version_modelo,
                         estado_modelo,
                         estado_llm,
-                        json.dumps(razones_modelo, ensure_ascii=False)
+                        json.dumps(razones_modelo, ensure_ascii=False),
+                        transaccion.monto
                     )
                 )
 
@@ -427,6 +432,211 @@ def listar_evaluaciones():
         raise HTTPException(
             status_code=500,
             detail="No fue posible consultar las evaluaciones."
+        )
+
+
+
+@app.get("/api/health")
+def health_detallado():
+    import time
+    import boto3
+    import pika
+    from botocore.config import Config
+
+    servicios = {
+        "postgresql": "no_disponible",
+        "rabbitmq": "no_disponible",
+        "sagemaker": "no_verificado",
+        "llm": "no_verificado"
+    }
+
+    try:
+        with obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                cursor.fetchone()
+        servicios["postgresql"] = "ok"
+    except Exception:
+        pass
+
+    conexion_cola = None
+    try:
+        credenciales = pika.PlainCredentials(
+            os.environ["RABBITMQ_USER"],
+            os.environ["RABBITMQ_PASSWORD"]
+        )
+        parametros = pika.ConnectionParameters(
+            host=os.getenv("RABBITMQ_HOST", "rabbitmq"),
+            credentials=credenciales,
+            socket_timeout=2,
+            connection_attempts=1
+        )
+        conexion_cola = pika.BlockingConnection(parametros)
+        canal = conexion_cola.channel()
+        estado_cola = canal.queue_declare(
+            queue="resumenes_fraude",
+            passive=True
+        )
+        servicios["rabbitmq"] = "ok"
+        consumidores = estado_cola.method.consumer_count
+        servicios["llm"] = (
+            "worker_conectado_proveedor_no_verificado"
+            if consumidores > 0 else "worker_no_conectado"
+        )
+    except Exception:
+        pass
+    finally:
+        if conexion_cola is not None and conexion_cola.is_open:
+            conexion_cola.close()
+
+    try:
+        cliente = boto3.client(
+            "sagemaker",
+            region_name=os.getenv("AWS_DEFAULT_REGION", "us-east-1"),
+            config=Config(
+                connect_timeout=2,
+                read_timeout=3,
+                retries={"max_attempts": 0}
+            )
+        )
+        respuesta = cliente.describe_endpoint(
+            EndpointName=VERSION_ENDPOINT
+        )
+        servicios["sagemaker"] = respuesta["EndpointStatus"]
+    except ClientError as error:
+        codigo_error = error.response.get("Error", {}).get("Code")
+        servicios["sagemaker"] = (
+            "no_verificado_por_permisos"
+            if codigo_error in ("AccessDenied", "AccessDeniedException")
+            else "no_disponible"
+        )
+    except Exception:
+        servicios["sagemaker"] = "no_verificado"
+
+    funcionando = (
+        servicios["postgresql"] == "ok"
+        and servicios["rabbitmq"] == "ok"
+        and servicios["sagemaker"] == "InService"
+        and servicios["llm"].startswith("worker_conectado")
+    )
+
+    return {
+        "estado": "ok" if funcionando else "degradado",
+        "servicios": servicios,
+        "endpoint_sagemaker": VERSION_ENDPOINT,
+        "nota": "El estado del worker no verifica directamente la API NVIDIA."
+    }
+
+
+@app.get("/api/revision", dependencies=[Depends(validar_api_key)])
+def listar_revision():
+    try:
+        with obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT id, decision, probabilidad_fraude,
+                           fecha_evaluacion, estado_llm,
+                           resumen_llm, razones, origen_decision, monto
+                    FROM evaluaciones
+                    WHERE decision IN ('revisar', 'bloquear')
+                    ORDER BY
+                        CASE WHEN decision = 'bloquear' THEN 0 ELSE 1 END,
+                        probabilidad_fraude DESC NULLS LAST,
+                        monto DESC NULLS LAST,
+                        fecha_evaluacion DESC
+                    LIMIT 100
+                    """
+                )
+                filas = cursor.fetchall()
+
+        return [
+            {
+                "evaluacion_id": fila[0],
+                "decision": fila[1],
+                "probabilidad_fraude": fila[2],
+                "fecha_evaluacion": fila[3].isoformat(),
+                "estado_llm": fila[4],
+                "resumen_llm": fila[5],
+                "razones": fila[6],
+                "origen_decision": fila[7],
+                "monto": float(fila[8]) if fila[8] is not None else None
+            }
+            for fila in filas
+        ]
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="No fue posible consultar la cola de revision."
+        )
+
+
+
+@app.get("/api/dashboard", dependencies=[Depends(validar_api_key)])
+def obtener_dashboard():
+    try:
+        with obtener_conexion() as conexion:
+            with conexion.cursor() as cursor:
+                cursor.execute("""
+                    SELECT
+                        COUNT(*),
+                        COUNT(*) FILTER (WHERE decision = 'aprobar'),
+                        COUNT(*) FILTER (WHERE decision = 'revisar'),
+                        COUNT(*) FILTER (WHERE decision = 'bloquear'),
+                        COUNT(*) FILTER (WHERE estado_llm = 'degradado')
+                    FROM evaluaciones
+                """)
+
+                total, aprobadas, revision, bloqueadas, degradadas = (
+                    cursor.fetchone()
+                )
+
+                cursor.execute("""
+                    SELECT
+                        (fecha_evaluacion AT TIME ZONE
+                         'America/Santiago')::date AS dia,
+                        COUNT(*) AS total,
+                        COUNT(*) FILTER (
+                            WHERE decision = 'bloquear'
+                        ) AS bloqueadas
+                    FROM evaluaciones
+                    GROUP BY dia
+                    ORDER BY dia DESC
+                    LIMIT 14
+                """)
+
+                registros = cursor.fetchall()
+
+        por_dia = [
+            {
+                "fecha": fila[0].isoformat(),
+                "total": fila[1],
+                "bloqueadas": fila[2],
+                "tasa_bloqueo": round(
+                    fila[2] * 100 / fila[1], 2
+                ) if fila[1] else 0
+            }
+            for fila in registros
+        ]
+
+        return {
+            "total_evaluaciones": total,
+            "decisiones": {
+                "aprobar": aprobadas,
+                "revisar": revision,
+                "bloquear": bloqueadas
+            },
+            "tasa_bloqueo_global": round(
+                bloqueadas * 100 / total, 2
+            ) if total else 0,
+            "evaluaciones_degradadas": degradadas,
+            "bloqueos_por_dia": por_dia
+        }
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="No fue posible obtener las estadisticas."
         )
 
 
