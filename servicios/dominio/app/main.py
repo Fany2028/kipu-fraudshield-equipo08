@@ -266,11 +266,16 @@ def predict(transaccion: Transaccion):
             "estado_modelo": estado_modelo
         }
 
-    except (BotoCoreError, ClientError):
+    except (BotoCoreError, ClientError) as error:
+        print(
+            f"[ERROR SAGEMAKER] {type(error).__name__}: {error}",
+            flush=True
+        )
         raise HTTPException(
             status_code=503,
             detail="El servicio de evaluación de SageMaker no está disponible."
         )
+    
     except Exception:
         raise HTTPException(
             status_code=500,

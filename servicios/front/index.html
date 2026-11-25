@@ -330,6 +330,16 @@
             <p class="description">Ingrese las características de la operación. Los campos binarios indican si la condición está presente.</p>
 
             <form id="formulario">
+                <div>
+                    <label for="api-key">Clave de acceso a la API</label>
+                    <input
+                        type="password"
+                        id="api-key"
+                        placeholder="Ingresa tu clave de acceso"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
                 <div class="section-label">Datos de la transacción</div>
                 <div class="grid">
                     <div>
@@ -496,8 +506,21 @@
     }
 
     function mostrarPrediccion(data) {
-        const esFraude = Number(data.prediccion) === 1;
-        const probabilidad = Number(data.probabilidad_fraude);
+    if (data.origen_decision === "lista_negra") {
+        const razones = Array.isArray(data.razones)
+            ? data.razones.join("; ")
+            : "Coincidencia con lista negra vigente.";
+
+        mostrarResultado(
+            "fraud",
+            "Transacción bloqueada por lista negra",
+            razones
+        );
+        return;
+    }
+
+    const esFraude = data.prediccion === 1;
+    const probabilidad = data.probabilidad_fraude;
 
         if (!Number.isFinite(probabilidad) || probabilidad < 0 || probabilidad > 1) {
             mostrarResultado("error", "Respuesta inválida", "El servicio devolvió una probabilidad fuera del rango esperado.");
@@ -537,6 +560,7 @@
         evento.preventDefault();
 
         if (!formulario.reportValidity()) return;
+        const apiKey = document.getElementById("api-key").value.trim();
 
         const datos = {};
         camposBinarios.forEach(campo => {
@@ -555,7 +579,10 @@
         try {
             const respuesta = await fetch("/api/predict", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-API-Key": apiKey
+                },
                 body: JSON.stringify(datos)
             });
 
@@ -619,7 +646,21 @@
         actualizar.disabled = true;
 
         try {
-            const respuesta = await fetch("/api/evaluaciones", { cache: "no-store" });
+            const apiKey = document.getElementById("api-key").value.trim();
+
+            if (!apiKey) {
+                mensaje.textContent = "Ingresa tu clave de API para consultar el historial.";
+                return;
+            }
+
+            const respuesta = await fetch("/api/evaluaciones", {
+                method: "GET",
+                headers: {
+                    "X-API-Key": apiKey
+            },
+            cache: "no-store"
+            });
+
             const datos = await respuesta.json().catch(() => []);
 
             if (!respuesta.ok) {
@@ -639,14 +680,32 @@
 
                 const resultadoCelda = crearCelda(fila, "");
                 const etiqueta = document.createElement("span");
-                const esFraude = Number(item.prediccion) === 1;
-                etiqueta.className = "pill " + (esFraude ? "fraud" : "safe");
-                etiqueta.textContent = esFraude ? "Fraude" : "No fraude";
+
+                const esFraude = item.prediccion === 1;
+                const decision = item.decision;
+
+                etiqueta.className = "pill " +
+                    (decision === "bloquear" || esFraude ? "fraud" : "safe");
+
+                etiqueta.textContent =
+                    decision === "bloquear" ? "Bloquear" :
+                    decision === "revisar" ? "Revisar" :
+                    decision === "aprobar" ? "Aprobar" :
+                    item.prediccion === null ? "Sin decisión" :
+                    esFraude ? "Fraude" : "No fraude";
+
                 resultadoCelda.appendChild(etiqueta);
 
-                const probabilidad = Number(item.probabilidad_fraude);
-                crearCelda(fila, Number.isFinite(probabilidad) ? (probabilidad * 100).toFixed(2) + "%" : "—");
-                crearCelda(fila, String(item.version_modelo ?? "—"));
+                const probabilidad = item.probabilidad_fraude;
+
+                crearCelda(
+                    fila,
+                    typeof probabilidad === "number" && Number.isFinite(probabilidad)
+                        ? (probabilidad * 100).toFixed(2) + "%"
+                    : "—"
+);
+
+crearCelda(fila, String(item.version_modelo ?? "—"));
 
                 let fecha = "—";
                 if (item.fecha_evaluacion) {
@@ -669,6 +728,7 @@
     }
 
     document.getElementById("actualizar").addEventListener("click", cargarHistorial);
+    document.getElementById("api-key").addEventListener("change", cargarHistorial);
     document.getElementById("limpiar").addEventListener("click", () => {
         resultado.className = "result";
         resultado.replaceChildren();
