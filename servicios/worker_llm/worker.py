@@ -41,6 +41,26 @@ def procesar_mensaje(canal, metodo, propiedades, cuerpo):
             if clave in senales
         ]
 
+        razones_modelo = mensaje.get("razones_modelo", [])
+        if isinstance(razones_modelo, list):
+            razones.extend(
+                razon[:350]
+                for razon in razones_modelo[:3]
+                if isinstance(razon, str)
+            )
+
+        probabilidad = mensaje.get("probabilidad_fraude")
+        if probabilidad is not None:
+            probabilidad = float(probabilidad)
+            if not 0 <= probabilidad <= 1:
+                raise ValueError("Probabilidad fuera de rango")
+            razones.append(
+                f"Probabilidad estimada por SageMaker: {probabilidad * 100:.2f}%"
+            )
+            razones.append(
+                f"Decision aplicada mediante umbrales: {decision}"
+            )
+
     except (ValueError, KeyError, TypeError):
         print("Mensaje invalido descartado.")
         canal.basic_ack(delivery_tag=metodo.delivery_tag)

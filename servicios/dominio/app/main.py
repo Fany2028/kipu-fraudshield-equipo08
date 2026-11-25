@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 
 from fastapi import FastAPI, HTTPException, Header, Depends
@@ -167,7 +167,20 @@ def predict(transaccion: Transaccion):
                 "estado_llm": "pendiente" if enviado else "degradado"
             }
         
-        resultado = predecir_sagemaker(datos_modelo)
+        campos = [
+            "monto_negativo", "monto_cero",
+            "moneda_desconocida", "monto_ambiguo",
+            "coordenadas_sospechosas",
+            "dispositivo_id_faltante",
+            "comercio_id_faltante", "ip_faltante"
+        ]
+        variantes = [datos_modelo]
+        for campo in campos:
+            alternativa = datos_modelo.copy()
+            alternativa[campo] = 1 - alternativa[campo]
+            variantes.append(alternativa)
+
+        resultado = predecir_sagemaker(variantes)
 
         predicciones = resultado.get("predicciones", [])
         if not predicciones:
@@ -180,6 +193,40 @@ def predict(transaccion: Transaccion):
 
         if prediccion not in (0, 1) or not 0 <= probabilidad <= 1:
             raise ValueError("SageMaker devolvió una predicción inválida.")
+
+        if len(predicciones) != len(variantes):
+            raise ValueError("Cantidad de predicciones inesperada.")
+
+        sensibilidad = []
+        for indice, campo in enumerate(campos, start=1):
+            alternativa = float(
+                predicciones[indice]["probabilidad_fraude"]
+            )
+            if not 0 <= alternativa <= 1:
+                raise ValueError("Probabilidad alternativa invalida.")
+
+            diferencia = (alternativa - probabilidad) * 100
+            etiqueta = campo.replace("_", " ")
+            razon = (
+                f"{etiqueta}: cambiar de {datos_modelo[campo]} "
+                f"a {1 - datos_modelo[campo]} modifica "
+                f"la probabilidad de {probabilidad * 100:.2f}% "
+                f"a {alternativa * 100:.2f}% "
+                f"({diferencia:+.2f} puntos porcentuales)."
+            )
+            sensibilidad.append((abs(diferencia), razon))
+
+        sensibilidad.sort(key=lambda x: x[0], reverse=True)
+        razones_modelo = [
+            razon for magnitud, razon in sensibilidad
+            if magnitud >= 0.01
+        ][:3]
+
+        if not razones_modelo:
+            razones_modelo = [
+                "Las variaciones binarias no produjeron "
+                "cambios relevantes en la probabilidad."
+            ]
 
         estado_modelo = "sagemaker"
         decision = obtener_decision(probabilidad)
@@ -194,9 +241,10 @@ def predict(transaccion: Transaccion):
                         probabilidad_fraude,
                         version_modelo,
                         estado_modelo,
-                        estado_llm
+                        estado_llm,
+                        razones
                     )
-                    VALUES (%s, %s, %s, %s, %s)
+                    VALUES (%s, %s, %s, %s, %s, %s::jsonb)
                     RETURNING id
                     """,
                     (
@@ -204,7 +252,8 @@ def predict(transaccion: Transaccion):
                         probabilidad,
                         version_modelo,
                         estado_modelo,
-                        estado_llm
+                        estado_llm,
+                        json.dumps(razones_modelo, ensure_ascii=False)
                     )
                 )
 
@@ -241,7 +290,9 @@ def predict(transaccion: Transaccion):
             enviado = enviar_a_cola({
                 "evaluacion_id": evaluacion_id,
                 "decision": decision,
-                "senales": senales
+                "senales": senales,
+                "probabilidad_fraude": probabilidad,
+                "razones_modelo": razones_modelo
             })
 
             if not enviado:
@@ -262,6 +313,7 @@ def predict(transaccion: Transaccion):
             "prediccion": prediccion,
             "probabilidad_fraude": round(probabilidad, 4),
             "decision": decision,
+            "razones": razones_modelo,
             "version_modelo": version_modelo,
             "estado_modelo": estado_modelo
         }

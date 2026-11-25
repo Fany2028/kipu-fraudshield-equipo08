@@ -532,7 +532,11 @@
 
         const titulo = document.createElement("h4");
         titulo.className = "result-title";
-        titulo.textContent = esFraude ? "Riesgo de fraude detectado" : "Sin fraude detectado por el modelo";
+        titulo.textContent =
+            data.decision === "bloquear" ? "Transacción bloqueada" :
+            data.decision === "revisar" ? "Transacción enviada a revisión" :
+            data.decision === "aprobar" ? "Transacción aprobada" :
+            "Resultado de evaluación";
 
         const porcentaje = document.createElement("div");
         porcentaje.className = "probability";
@@ -554,6 +558,59 @@
         nota.className = "note";
         nota.textContent = "Resultado experimental de apoyo. No constituye por sí solo una decisión definitiva sobre la transacción.";
         resultado.appendChild(nota);
+    }
+
+
+    async function mostrarExplicacionNvidia(id) {
+        if (!Number.isInteger(id) || id < 1) return;
+
+        const texto = document.createElement("p");
+        texto.className = "note";
+        texto.textContent = "NVIDIA: consultando explicaci?n...";
+        resultado.appendChild(texto);
+
+        for (let intento = 0; intento < 8; intento++) {
+            if (!resultado.contains(texto)) return;
+
+            try {
+                const respuesta = await fetch(`/api/predicciones/${id}`, {
+                    headers: {
+                        "X-API-Key": document.getElementById("api-key").value.trim()
+                    },
+                    cache: "no-store"
+                });
+
+                if (!respuesta.ok) throw new Error("Consulta fallida");
+
+                const datos = await respuesta.json();
+
+                if (!resultado.contains(texto)) return;
+
+                if (datos.estado_llm === "completado") {
+                    texto.textContent = "NVIDIA: " + (datos.resumen_llm || "Sin explicaci?n disponible.");
+                    return;
+                }
+
+                if (datos.estado_llm === "degradado") {
+                    texto.textContent = "NVIDIA no disponible. La decisi?n se mantiene.";
+                    return;
+                }
+
+                if (datos.estado_llm === "no_solicitado") {
+                    texto.textContent = "No se requiri? explicaci?n de NVIDIA.";
+                    return;
+                }
+            } catch (_) {
+                texto.textContent = "No fue posible consultar NVIDIA.";
+                return;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        if (resultado.contains(texto)) {
+            texto.textContent = "Explicaci?n pendiente de procesamiento.";
+        }
     }
 
     formulario.addEventListener("submit", async (evento) => {
@@ -593,6 +650,7 @@
             }
 
             mostrarPrediccion(data);
+            void mostrarExplicacionNvidia(data.evaluacion_id);
             cargarHistorial();
         } catch (error) {
             mostrarResultado("error", "No fue posible completar la evaluación", error.message || "Error de conexión con el servicio.");
