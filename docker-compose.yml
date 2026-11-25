@@ -1,10 +1,24 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: kipu-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - kipu_caddy_data:/data
+      - kipu_caddy_config:/config
+    depends_on:
+      - gateway
+
   gateway:
     image: nginx:1.27-alpine
     container_name: kipu-gateway
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "127.0.0.1:8080:80"
     volumes:
       - ./servicios/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -30,8 +44,6 @@ services:
       RABBITMQ_USER: ${RABBITMQ_USER}
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       KIPU_API_KEY: ${KIPU_API_KEY:?KIPU_API_KEY_no_configurada}
-    volumes:
-      - "${USERPROFILE}/.aws:/root/.aws:ro"
     depends_on:
       postgres:
         condition: service_healthy
@@ -81,3 +93,5 @@ services:
 
 volumes:
   kipu_postgres_data:
+  kipu_caddy_data:
+  kipu_caddy_config:

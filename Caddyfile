@@ -1,0 +1,4 @@
+52-207-113-151.sslip.io {
+    encode gzip
+    reverse_proxy gateway:80
+}
