@@ -1,5 +1,15 @@
+import numpy as np
+from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
-from modelo.api import app
+
+# Simular el modelo para las pruebas automatizadas
+modelo_simulado = MagicMock()
+modelo_simulado.predict.return_value = [0]
+modelo_simulado.predict_proba.return_value = np.array([[0.9, 0.1]])
+
+# Evitar depender del archivo .joblib durante las pruebas
+with patch("joblib.load", return_value=modelo_simulado):
+    from modelo.api import app
 
 cliente = TestClient(app)
 

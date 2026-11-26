@@ -1,14 +1,38 @@
-name: Docker Build and Publish
+name: Docker Build and Publish EP3
 
 on:
   push:
     branches:
-      - feat/backend-docker-despliegue
-
+      - deploy/ep3-aws
   workflow_dispatch:
 
 jobs:
+  tests:
+    name: Validar pruebas EP3
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar version EP3
+        uses: actions/checkout@v4
+        with:
+          ref: ep3
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r servicios/worker_llm/requirements.txt
+
+      - name: Ejecutar pruebas
+        run: python -m pytest -v
+
   build-and-push:
+    name: Publicar imagenes EP3
+    needs: tests
     runs-on: ubuntu-latest
 
     permissions:
@@ -16,10 +40,12 @@ jobs:
       packages: write
 
     steps:
-      - name: Descargar codigo del repositorio
+      - name: Descargar version EP3
         uses: actions/checkout@v4
+        with:
+          ref: ep3
 
-      - name: Obtener nombre del propietario en minusculas
+      - name: Obtener propietario
         id: vars
         run: |
           OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
@@ -35,18 +61,26 @@ jobs:
       - name: Configurar Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Construir y publicar backend
+      - name: Publicar backend EP3
         uses: docker/build-push-action@v6
         with:
           context: .
           file: servicios/dominio/Dockerfile
           push: true
-          tags: ghcr.io/${{ steps.vars.outputs.owner }}/kipu-fraudshield-dominio:latest
+          tags: ghcr.io/${{ steps.vars.outputs.owner }}/kipu-fraudshield-dominio:ep3
 
-      - name: Construir y publicar frontend
+      - name: Publicar frontend EP3
         uses: docker/build-push-action@v6
         with:
           context: ./servicios/front
           file: ./servicios/front/Dockerfile
           push: true
-          tags: ghcr.io/${{ steps.vars.outputs.owner }}/kipu-fraudshield-front:latest
+          tags: ghcr.io/${{ steps.vars.outputs.owner }}/kipu-fraudshield-front:ep3
+
+      - name: Publicar worker NVIDIA EP3
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: servicios/worker_llm/Dockerfile
+          push: true
+          tags: ghcr.io/${{ steps.vars.outputs.owner }}/kipu-fraudshield-worker-llm:ep3

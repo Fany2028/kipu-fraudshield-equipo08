@@ -285,6 +285,83 @@
         .loading { color: var(--muted); font-size: 12px; padding: 12px 0; }
         footer { text-align: center; padding: 25px; color: #8994a6; font-size: 11px; }
 
+
+        .dash-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+            gap: 12px;
+            margin: 14px 0 22px;
+        }
+        .dash-card {
+            background: #f4f6fb;
+            border: 1px solid #e5eaf2;
+            border-radius: 12px;
+            padding: 16px;
+        }
+        .dash-card span {
+            color: #718096;
+            font-size: 12px;
+        }
+        .dash-card strong {
+            display: block;
+            color: #101b32;
+            font-size: 26px;
+            margin-top: 7px;
+        }
+        .dash-columns {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 20px;
+        }
+
+        #dash-dias {
+            width: 100%;
+            min-width: 0;
+            max-width: 650px;
+        }
+
+        #dash-cola {
+            width: 100%;
+            min-width: 700px;
+            table-layout: fixed;
+        }
+
+        #dash-cola th:nth-child(1) { width: 7%; }
+        #dash-cola th:nth-child(2) { width: 13%; }
+        #dash-cola th:nth-child(3) { width: 12%; }
+        #dash-cola th:nth-child(4) { width: 14%; }
+        #dash-cola th:nth-child(5) { width: 54%; }
+
+        #dash-cola td {
+            vertical-align: top;
+            overflow-wrap: break-word;
+        }
+
+        #dash-cola td:nth-child(-n+4) {
+            overflow-wrap: normal;
+            word-break: normal;
+            white-space: nowrap;
+        }
+
+        .dash-detalle summary {
+            color: #3867e8;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .dash-detalle p {
+            margin: 10px 0 0;
+            line-height: 1.6;
+            white-space: normal;
+        }
+
+        .dash-columns h4 { margin: 0 0 12px; }
+        .dash-table { min-width: 420px; }
+        .dash-table td { overflow-wrap: anywhere; }
+        @media (max-width: 800px) {
+            .dash-columns { grid-template-columns: 1fr; }
+        }
+
         @media (max-width: 800px) {
             .layout { grid-template-columns: 1fr; }
             .side-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -299,7 +376,34 @@
             .actions { align-items: stretch; flex-direction: column; }
             .actions button { width: 100%; }
         }
-    </style>
+
+        /* KIPU_DASH_RESPONSIVE_V2 */
+        .dash-columns > div {
+            min-width: 0;
+        }
+
+        #dash-cola td {
+            overflow-wrap: anywhere;
+        }
+
+        .dash-detalle summary {
+            cursor: pointer;
+            color: #3867e8;
+            font-weight: 600;
+        }
+
+        .dash-detalle p {
+            line-height: 1.6;
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 1200px) {
+            .dash-columns {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+        </style>
 </head>
 <body>
 <header>
@@ -330,8 +434,23 @@
             <p class="description">Ingrese las características de la operación. Los campos binarios indican si la condición está presente.</p>
 
             <form id="formulario">
+                <div>
+                    <label for="api-key">Clave de acceso a la API</label>
+                    <input
+                        type="password"
+                        id="api-key"
+                        placeholder="Ingresa tu clave de acceso"
+                        autocomplete="off"
+                        required
+                    >
+                </div>
                 <div class="section-label">Datos de la transacción</div>
                 <div class="grid">
+                    <div>
+                        <label for="monto">Monto de la transacci&oacute;n (opcional)</label>
+                        <input id="monto" type="number" min="0" step="0.01"
+                               placeholder="Ej. 50000" inputmode="decimal">
+                    </div>
                     <div>
                         <label for="moneda">Moneda</label>
                         <select id="moneda" required>
@@ -423,6 +542,85 @@
         </aside>
     </div>
 
+
+    <section class="panel history" id="dashboard">
+        <div class="history-head">
+            <div>
+                <h3>Dashboard de fraude</h3>
+                <p>Indicadores obtenidos desde PostgreSQL.</p>
+            </div>
+            <button class="secondary" id="dash-actualizar"
+                    type="button">Actualizar dashboard</button>
+        </div>
+
+        <div id="dash-message" class="loading">
+            Ingresa tu clave de API para ver las estad&iacute;sticas.
+        </div>
+
+        <div class="dash-stats">
+            <div class="dash-card">
+                <span>Total evaluaciones</span>
+                <strong id="dash-total">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Aprobadas</span>
+                <strong id="dash-aprobar">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>En revisi&oacute;n</span>
+                <strong id="dash-revisar">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Bloqueadas</span>
+                <strong id="dash-bloquear">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Sin decisi&oacute;n registrada</span>
+                <strong id="dash-sin-decision">--</strong>
+            </div>
+            <div class="dash-card">
+                <span>Tasa de bloqueo global</span>
+                <strong id="dash-tasa">--</strong>
+            </div>
+        </div>
+
+        <div class="dash-columns">
+            <div>
+                <h4>Bloqueos por d&iacute;a</h4>
+                <div class="table-wrap">
+                    <table class="dash-table" id="dash-dias" hidden>
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>Bloqueadas</th>
+                                <th>Tasa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-dias-body"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <h4>Cola de revisi&oacute;n priorizada</h4>
+                <div class="table-wrap">
+                    <table class="dash-table" id="dash-cola" hidden>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Decisi&oacute;n</th>
+                                <th>Riesgo</th>
+                                <th>Monto</th>
+                                <th>Resumen NVIDIA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-cola-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="panel history">
         <div class="history-head">
             <div>
@@ -496,8 +694,21 @@
     }
 
     function mostrarPrediccion(data) {
-        const esFraude = Number(data.prediccion) === 1;
-        const probabilidad = Number(data.probabilidad_fraude);
+    if (data.origen_decision === "lista_negra") {
+        const razones = Array.isArray(data.razones)
+            ? data.razones.join("; ")
+            : "Coincidencia con lista negra vigente.";
+
+        mostrarResultado(
+            "fraud",
+            "Transacción bloqueada por lista negra",
+            razones
+        );
+        return;
+    }
+
+    const esFraude = data.prediccion === 1;
+    const probabilidad = data.probabilidad_fraude;
 
         if (!Number.isFinite(probabilidad) || probabilidad < 0 || probabilidad > 1) {
             mostrarResultado("error", "Respuesta inválida", "El servicio devolvió una probabilidad fuera del rango esperado.");
@@ -509,7 +720,11 @@
 
         const titulo = document.createElement("h4");
         titulo.className = "result-title";
-        titulo.textContent = esFraude ? "Riesgo de fraude detectado" : "Sin fraude detectado por el modelo";
+        titulo.textContent =
+            data.decision === "bloquear" ? "Transacción bloqueada" :
+            data.decision === "revisar" ? "Transacción enviada a revisión" :
+            data.decision === "aprobar" ? "Transacción aprobada" :
+            "Resultado de evaluación";
 
         const porcentaje = document.createElement("div");
         porcentaje.className = "probability";
@@ -533,15 +748,74 @@
         resultado.appendChild(nota);
     }
 
+
+    async function mostrarExplicacionNvidia(id) {
+        if (!Number.isInteger(id) || id < 1) return;
+
+        const texto = document.createElement("p");
+        texto.className = "note";
+        texto.textContent = "NVIDIA: consultando explicaci?n...";
+        resultado.appendChild(texto);
+
+        for (let intento = 0; intento < 8; intento++) {
+            if (!resultado.contains(texto)) return;
+
+            try {
+                const respuesta = await fetch(`/api/predicciones/${id}`, {
+                    headers: {
+                        "X-API-Key": document.getElementById("api-key").value.trim()
+                    },
+                    cache: "no-store"
+                });
+
+                if (!respuesta.ok) throw new Error("Consulta fallida");
+
+                const datos = await respuesta.json();
+
+                if (!resultado.contains(texto)) return;
+
+                if (datos.estado_llm === "completado") {
+                    texto.textContent = "NVIDIA: " + (datos.resumen_llm || "Sin explicaci?n disponible.");
+                    return;
+                }
+
+                if (datos.estado_llm === "degradado") {
+                    texto.textContent = "NVIDIA no disponible. La decisi?n se mantiene.";
+                    return;
+                }
+
+                if (datos.estado_llm === "no_solicitado") {
+                    texto.textContent = "No se requiri? explicaci?n de NVIDIA.";
+                    return;
+                }
+            } catch (_) {
+                texto.textContent = "No fue posible consultar NVIDIA.";
+                return;
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1500));
+        }
+
+        if (resultado.contains(texto)) {
+            texto.textContent = "Explicaci?n pendiente de procesamiento.";
+        }
+    }
+
     formulario.addEventListener("submit", async (evento) => {
         evento.preventDefault();
 
         if (!formulario.reportValidity()) return;
+        const apiKey = document.getElementById("api-key").value.trim();
 
         const datos = {};
         camposBinarios.forEach(campo => {
             datos[campo] = Number(document.getElementById(campo).value);
         });
+
+        const montoTexto = document.getElementById("monto").value.trim();
+        if (montoTexto !== "") {
+            datos.monto = Number(montoTexto);
+        }
 
         datos.moneda = document.getElementById("moneda").value;
         datos.canal = document.getElementById("canal").value;
@@ -555,7 +829,10 @@
         try {
             const respuesta = await fetch("/api/predict", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-API-Key": apiKey
+                },
                 body: JSON.stringify(datos)
             });
 
@@ -566,7 +843,9 @@
             }
 
             mostrarPrediccion(data);
+            void mostrarExplicacionNvidia(data.evaluacion_id);
             cargarHistorial();
+            cargarDashboard();
         } catch (error) {
             mostrarResultado("error", "No fue posible completar la evaluación", error.message || "Error de conexión con el servicio.");
         } finally {
@@ -619,7 +898,21 @@
         actualizar.disabled = true;
 
         try {
-            const respuesta = await fetch("/api/evaluaciones", { cache: "no-store" });
+            const apiKey = document.getElementById("api-key").value.trim();
+
+            if (!apiKey) {
+                mensaje.textContent = "Ingresa tu clave de API para consultar el historial.";
+                return;
+            }
+
+            const respuesta = await fetch("/api/evaluaciones", {
+                method: "GET",
+                headers: {
+                    "X-API-Key": apiKey
+            },
+            cache: "no-store"
+            });
+
             const datos = await respuesta.json().catch(() => []);
 
             if (!respuesta.ok) {
@@ -639,14 +932,32 @@
 
                 const resultadoCelda = crearCelda(fila, "");
                 const etiqueta = document.createElement("span");
-                const esFraude = Number(item.prediccion) === 1;
-                etiqueta.className = "pill " + (esFraude ? "fraud" : "safe");
-                etiqueta.textContent = esFraude ? "Fraude" : "No fraude";
+
+                const esFraude = item.prediccion === 1;
+                const decision = item.decision;
+
+                etiqueta.className = "pill " +
+                    (decision === "bloquear" || esFraude ? "fraud" : "safe");
+
+                etiqueta.textContent =
+                    decision === "bloquear" ? "Bloquear" :
+                    decision === "revisar" ? "Revisar" :
+                    decision === "aprobar" ? "Aprobar" :
+                    item.prediccion === null ? "Sin decisión" :
+                    esFraude ? "Fraude" : "No fraude";
+
                 resultadoCelda.appendChild(etiqueta);
 
-                const probabilidad = Number(item.probabilidad_fraude);
-                crearCelda(fila, Number.isFinite(probabilidad) ? (probabilidad * 100).toFixed(2) + "%" : "—");
-                crearCelda(fila, String(item.version_modelo ?? "—"));
+                const probabilidad = item.probabilidad_fraude;
+
+                crearCelda(
+                    fila,
+                    typeof probabilidad === "number" && Number.isFinite(probabilidad)
+                        ? (probabilidad * 100).toFixed(2) + "%"
+                    : "—"
+);
+
+crearCelda(fila, String(item.version_modelo ?? "—"));
 
                 let fecha = "—";
                 if (item.fecha_evaluacion) {
@@ -668,7 +979,146 @@
         }
     }
 
+
+    async function cargarDashboard() {
+        const mensaje = document.getElementById("dash-message");
+        const tablaDias = document.getElementById("dash-dias");
+        const tablaCola = document.getElementById("dash-cola");
+        const botonDash = document.getElementById("dash-actualizar");
+        const clave = document.getElementById("api-key").value.trim();
+
+        if (!clave) {
+            mensaje.textContent = "Ingresa tu clave de API para ver el dashboard.";
+            return;
+        }
+
+        botonDash.disabled = true;
+        mensaje.textContent = "Consultando estadisticas y cola de revision...";
+
+        try {
+            const opciones = {
+                headers: { "X-API-Key": clave },
+                cache: "no-store"
+            };
+
+            const [respuestaStats, respuestaCola] = await Promise.all([
+                fetch("/api/dashboard", opciones),
+                fetch("/api/revision", opciones)
+            ]);
+
+            if (!respuestaStats.ok || !respuestaCola.ok) {
+                throw new Error("No fue posible consultar el dashboard.");
+            }
+
+            const stats = await respuestaStats.json();
+            const cola = await respuestaCola.json();
+            const decisiones = stats.decisiones || {};
+            const total = Number(stats.total_evaluaciones || 0);
+            const aprobar = Number(decisiones.aprobar || 0);
+            const revisar = Number(decisiones.revisar || 0);
+            const bloquear = Number(decisiones.bloquear || 0);
+
+            const valores = {
+                "dash-total": total,
+                "dash-aprobar": aprobar,
+                "dash-revisar": revisar,
+                "dash-bloquear": bloquear,
+                "dash-sin-decision": Math.max(
+                    0, total - aprobar - revisar - bloquear
+                ),
+                "dash-tasa": Number(
+                    stats.tasa_bloqueo_global || 0
+                ).toFixed(2) + "%"
+            };
+
+            Object.entries(valores).forEach(([id, valor]) => {
+                document.getElementById(id).textContent = String(valor);
+            });
+
+            const cuerpoDias = document.getElementById("dash-dias-body");
+            cuerpoDias.replaceChildren();
+
+            const dias = stats.bloqueos_por_dia || [];
+            dias.forEach(dia => {
+                const fila = document.createElement("tr");
+                crearCelda(fila, dia.fecha);
+                crearCelda(fila, String(dia.total));
+                crearCelda(fila, String(dia.bloqueadas));
+                crearCelda(fila, Number(dia.tasa_bloqueo).toFixed(2) + "%");
+                cuerpoDias.appendChild(fila);
+            });
+            tablaDias.hidden = dias.length === 0;
+
+            const cuerpoCola = document.getElementById("dash-cola-body");
+            cuerpoCola.replaceChildren();
+
+            cola.forEach(item => {
+                const fila = document.createElement("tr");
+                crearCelda(fila, String(item.evaluacion_id));
+                crearCelda(fila, item.decision || "Sin decision");
+
+                const riesgo = item.probabilidad_fraude;
+                crearCelda(
+                    fila,
+                    typeof riesgo === "number"
+                        ? (riesgo * 100).toFixed(2) + "%"
+                        : "Regla directa"
+                );
+
+                crearCelda(
+                    fila,
+                    item.monto == null
+                        ? "No registrado"
+                        : Number(item.monto).toLocaleString("es-CL", {
+                            maximumFractionDigits: 2
+                        })
+                );
+
+                const celdaResumen = crearCelda(fila, "");
+
+                if (item.resumen_llm) {
+                    const detalle = document.createElement("details");
+                    detalle.className = "dash-detalle";
+
+                    const titulo = document.createElement("summary");
+                    titulo.textContent = "Ver explicación NVIDIA";
+
+                    const contenido = document.createElement("p");
+                    contenido.textContent = item.resumen_llm;
+
+                    detalle.append(titulo, contenido);
+                    celdaResumen.appendChild(detalle);
+                } else {
+                    celdaResumen.textContent =
+                        "Sin resumen: " + (item.estado_llm || "pendiente");
+                }
+
+                cuerpoCola.appendChild(fila);
+            });
+            tablaCola.hidden = cola.length === 0;
+
+            mensaje.textContent =
+                "Dashboard actualizado. " +
+                cola.length + " evaluaciones en la cola de revision.";
+
+        } catch (error) {
+            mensaje.textContent = error.message;
+        } finally {
+            botonDash.disabled = false;
+        }
+    }
+
+    document.getElementById("dash-actualizar")
+        .addEventListener("click", cargarDashboard);
+
+    document.getElementById("api-key")
+        .addEventListener("change", cargarDashboard);
+
+    document.getElementById("actualizar")
+        .addEventListener("click", cargarDashboard);
+
     document.getElementById("actualizar").addEventListener("click", cargarHistorial);
+    document.getElementById("api-key").addEventListener("change", cargarHistorial);
     document.getElementById("limpiar").addEventListener("click", () => {
         resultado.className = "result";
         resultado.replaceChildren();
@@ -676,6 +1126,7 @@
 
     comprobarServicio();
     cargarHistorial();
+    cargarDashboard();
     setInterval(comprobarServicio, 30000);
 </script>
 </body>
